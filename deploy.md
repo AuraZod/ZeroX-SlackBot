@@ -66,7 +66,7 @@ Go to **Install App** and click **Install to Workspace**. Copy the Bot Token tha
 ## 3. Clone and Configure
 
 ```bash
-git clone https://github.com/AuraZod/slack-bot.git
+git clone https://github.com/AuraZod/ZeroX-SlackBot.git
 cd slack-bot
 npm install
 cp .env.example .env
