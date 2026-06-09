@@ -5,7 +5,7 @@ This guide explains how to deploy your own instance of ZeroX to a Linux server o
 ## Prerequisites
 
 * A Linux server or Nest account
-* Node.js v18 or later
+* Node.js v24.11.1
 * A Slack workspace where you have permission to install apps
 
 ---
@@ -87,40 +87,74 @@ You should see `zerox is up and running` in the terminal. Press `Ctrl+C` to stop
 
 ---
 
-## 5. Run as a Background Service (Linux / Nest)
+## 5. Run as a systemd service
 
-To keep the bot running after you log out, set it up as a systemd user service.
+Without systemd, your bot will stop when you disconnect SSH, when the server restarts, or when the process crashes. Systemd keeps it alive.
 
-Copy the service file:
+Copy the service file to the systemd directory:
 ```bash
-mkdir -p ~/.config/systemd/user/
-cp slackbot.service ~/.config/systemd/user/slackbot.service
+cp slackbot.service /etc/systemd/system/slackbot.service
 ```
 
-Edit the `WorkingDirectory` and `ExecStart` paths in the copied file to match where you cloned the repo:
+Make sure the paths in `/etc/systemd/system/slackbot.service` match your repository location:
 ```ini
+[Unit]
+Description=ZeroX Slack Assistant
+After=network-online.target
+Wants=network-online.target
+
 [Service]
-WorkingDirectory=/home/youruser/slack-bot
-ExecStart=/usr/bin/env node index.js
+Type=simple
+Restart=always
+WorkingDirectory=/root/ZeroX-SlackBot
+ExecStart=/usr/bin/node index.js
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-Then enable and start it:
+Enable and start the service:
 ```bash
-systemctl --user daemon-reload
-systemctl --user enable slackbot
-systemctl --user start slackbot
-```
-
-Allow the service to keep running when you are logged out:
-```bash
-loginctl enable-linger youruser
+systemctl daemon-reload
+systemctl enable --now slackbot.service
 ```
 
 ### Useful Commands
 
 | Action | Command |
 |---|---|
-| Start | `systemctl --user start slackbot` |
-| Stop | `systemctl --user stop slackbot` |
-| Restart | `systemctl --user restart slackbot` |
-| View logs | `journalctl --user -u slackbot -f` |
+| Start | `systemctl start slackbot` |
+| Stop | `systemctl stop slackbot` |
+| Restart | `systemctl restart slackbot` |
+| View logs | `journalctl -u slackbot -f` |
+
+## 6. Alternativerly Run with PM2
+Without PM2, your bot will stop when you disconnect SSH or if it crashes. PM2 keeps it alive.
+
+Install PM2 globally:
+```bash
+npm install -g pm2
+```
+
+Start the bot with PM2:
+```bash
+pm2 start index.js --name slackbot
+```
+
+Save the process list and enable auto-start on reboot:
+```bash
+pm2 save
+pm2 startup
+```
+
+> Run the command that `pm2 startup` outputs to register the startup hook.
+
+### Useful Commands
+
+| Action | Command |
+|---|---|
+| Start | `pm2 start slackbot` |
+| Stop | `pm2 stop slackbot` |
+| Restart | `pm2 restart slackbot` |
+| View logs | `pm2 logs slackbot` |
